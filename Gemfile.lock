@@ -1,0 +1,19 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    asciidoctor (2.0.20)
+    asciidoctor-reducer (1.0.5)
+      asciidoctor (~> 2.0)
+
+PLATFORMS
+  arm64-darwin-22
+  x86_64-darwin-22
+
+DEPENDENCIES
+  asciidoctor-reducer
+
+RUBY VERSION
+   ruby 3.1.2p20
+
+BUNDLED WITH
+   2.3.20

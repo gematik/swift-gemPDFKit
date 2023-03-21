@@ -1,0 +1,99 @@
+////
+Execute `make readme` after editing <project_root>/README.adoc
+////
+:doctype: book
+image::Gematik_Logo_Flag_With_Background.png[logo,width=200,height=47,role=right]
+:testdir: Tests
+
+= Swift-GemPDFKit
+
+++++
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+       <ul>
+        <li><a href="#release-notes">Release Notes</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ol>
+</details>
+++++
+
+== About The Project
+
+Swift-GemPDFKit is a (by no means complete) library for parsing, writing, and adding attachments to PDFs. The PDF-parsing and -tokenization depends heavily on https://www.pointfree.co/[Pointfree]'s https://github.com/pointfreeco/swift-parsing[swift-parsing] library.
+
+=== Release Notes
+
+See `link:ReleaseNotes.md[ReleaseNotes]` for all information regarding the (newest) releases.
+
+== Getting Started
+
+You can parse a PDF file and then add attachments to it:
+
+[source,swift]
+----
+// Parse the original PDF data and data to be attached
+let originalPdfData = try testResource(name: "simple_pdf", extension: "pdf")
+let toBeAttachedData = try testResource(name: "somedata", extension: "")
+
+// Parse the PDF data
+let originalPdfDataString = String(data: originalPdfData, encoding: .ascii)!.utf8
+let parsedPdfDocument = try PDFDocument.PDFDocumentParserPrinter().parse(originalPdfDataString)
+
+// Render the attachment data before appending
+let renderedAttachmentData = try parsedPdfDocument.append(
+    attachment: .init(filename: "attachmentFilename🧸", content: toBeAttachedData),
+    startObj:  originalPdfData.count
+)
+
+// Add the rendered attachment data to the original PDF data
+let pdfWithAttachmentData = originalPdfData + renderedAttachmentData
+
+// Write the data to your system
+let outputPath = outputResourceURL(name: "output", extension: "pdf")
+try pdfWithAttachmentData.write(to: outputPath)
+----
+
+You can also extract attachments from a PDF:
+
+[source,swift]
+----
+let pdfWithAttachmentDataString = String(data: pdfWithAttachmentData, encoding: .ascii)!.utf8
+let parsedPdfWithAttachment = try PDFDocument.PDFDocumentParserPrinter().parse(pdfWithAttachmentDataString)
+let attachments = try parsedPdfWithAttachment.allAttachments()
+
+expect(attachments.count).to(equal(1)) // ✅
+expect(attachments.first?.content).to(equal(toBeAttachedData)) // ✅
+----
+
+== Documentation
+
+Documentation is available at https://swiftpackageindex.com/gematik/swift-gempdfkit/documentation/.
+
+== License
+
+Copyright 2023 gematik GmbH
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+
+See the link:./LICENSE[LICENSE] for the specific language governing permissions and limitations under the License.
+
+Unless required by applicable law the software is provided "as is" without warranty of any kind, either express or implied, including, but not limited to, the warranties of fitness for a particular purpose, merchantability, and/or non-infringement. The authors or copyright holders shall not be liable in any manner whatsoever for any damages or other claims arising from, out of or in connection with the software or the use or other dealings with the software, whether in an action of contract, tort, or otherwise.
+
+The software is the result of research and development activities, therefore not necessarily quality assured and without the character of a liable product. For this reason, gematik does not provide any support or other user assistance (unless otherwise stated in individual cases and without justification of a legal obligation). Furthermore, there is no claim to further development and adaptation of the results to a more current state of the art.
+
+Gematik may remove published results temporarily or permanently from the place of publication at any time without prior notice or justification.

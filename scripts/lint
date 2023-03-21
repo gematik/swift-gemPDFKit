@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# scripts/lint: Run lint for application.
+
+set -ev
+
+cd "$(dirname "$0")/.."
+
+[ -z "$DEBUG" ] || set -x
+
+echo "==> Running static analysis…"
+
+mint run swiftformat . --config .swiftformat --lint
+mint run swiftlint lint --strict --quiet
