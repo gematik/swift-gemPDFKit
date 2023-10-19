@@ -211,7 +211,10 @@ extension PDFAtom {
         var body: some ParserPrinter<Substring.UTF8View, String> {
             Whitespace()
             "(".utf8
-            Many(into: "", += ) { string in
+            Many(
+                into: "",
+                +=
+            ) { string in
                 string
                     .components(
                         separatedByIncluding: CharacterSet(

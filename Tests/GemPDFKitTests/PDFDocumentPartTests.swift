@@ -188,12 +188,11 @@ final class PDFDocumentPartTests: XCTestCase {
 extension XCTestCase {
     func testResourceURL(name: String, extension ext: String) -> URL {
         let bundle = Bundle.module
-        let testDataPath = bundle.bundleURL.appendingPathComponent("TestData")
+        let testDataPath = bundle.path(forResource: name, ofType: ext, inDirectory: "TestData")
+        return URL(fileURLWithPath: testDataPath!)
+        // beginning with iOS16 one can use:
+        // return URL.init(filePath: testDataPath!)
 
-        if ext.lengthOfBytes(using: .utf8) > 0 {
-            return testDataPath.appendingPathComponent("\(name).\(ext)")
-        }
-        return testDataPath.appendingPathComponent("\(name)")
     }
 
     func outputResourceURL(name: String, extension ext: String) -> URL {

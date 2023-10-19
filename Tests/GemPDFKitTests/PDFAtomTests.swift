@@ -55,7 +55,7 @@ final class PDFAtomTests: XCTestCase {
         expect(try PDFAtom.DoubleParserPrinter().parse(".123 ")).to(equal(0.123))
         expect(try PDFAtom.DoubleParserPrinter().parse(" .123")).to(equal(0.123))
         expect(try PDFAtom.DoubleParserPrinter().parse(" .123 ")).to(equal(0.123))
-        
+
         expect(try PDFAtom.DoubleParserPrinter().parse("123")).to(equal(123.0))
     }
 
@@ -64,7 +64,7 @@ final class PDFAtomTests: XCTestCase {
         expect(try PDFAtom.IntParserPrinter().parse("123 ")).to(equal(123))
         expect(try PDFAtom.IntParserPrinter().parse(" 123")).to(equal(123))
         expect(try PDFAtom.IntParserPrinter().parse("  123  ")).to(equal(123))
-        
+
         expect(try PDFAtom.IntParserPrinter().parse("123.1")).to(throwError())
         expect(try PDFAtom.IntParserPrinter().parse(".123")).to(throwError())
     }

@@ -41,7 +41,7 @@ final class PDFDocumentAppendTests: XCTestCase {
         // Render the attachment data before appending
         let renderedAttachmentData = try parsedPdfDocument.append(
             attachment: .init(filename: "attachmentFilename🧸", content: toBeAttachedData),
-            startObj:  originalPdfData.count
+            startObj: originalPdfData.count
         )
 
         // Add the rendered attachment data to the original PDF data
@@ -51,13 +51,11 @@ final class PDFDocumentAppendTests: XCTestCase {
         let outputPath = outputResourceURL(name: "output", extension: "pdf")
         try pdfWithAttachmentData.write(to: outputPath)
         // end::parseAndAttachToPdf[]
-        
-        
+
         // This is for manual validation:
         let compare = outputResourceURL(name: "compare", extension: "pdf")
         try renderedAttachmentData.write(to: compare)
-        
-        
+
         // Extract the test data
         // tag::extractAttachmentFromPdf[]
         let pdfWithAttachmentDataString = String(data: pdfWithAttachmentData, encoding: .ascii)!.utf8
