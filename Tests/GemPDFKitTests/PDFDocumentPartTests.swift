@@ -192,7 +192,6 @@ extension XCTestCase {
         return URL(fileURLWithPath: testDataPath!)
         // beginning with iOS16 one can use:
         // return URL.init(filePath: testDataPath!)
-
     }
 
     func outputResourceURL(name: String, extension ext: String) -> URL {

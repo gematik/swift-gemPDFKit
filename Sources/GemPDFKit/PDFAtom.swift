@@ -297,7 +297,7 @@ extension PDFAtom {
             "<<".utf8
             Many(
                 into: [PDFAtom: PDFAtom]()
-            ) { object, pair in
+            ) { (object: inout [PDFAtom: PDFAtom], pair: (PDFAtom, PDFAtom)) in
                 let (name, value) = pair
                 object[name] = value
             } decumulator: { object in
