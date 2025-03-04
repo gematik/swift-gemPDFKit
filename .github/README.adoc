@@ -51,14 +51,14 @@ let originalPdfData = try testResource(name: "simple_pdf", extension: "pdf")
 let toBeAttachedData = try testResource(name: "somedata", extension: "")
 
 // Parse the PDF data
-let originalPdfDataString = String(data: originalPdfData, encoding: .ascii)!.utf8
+let originalPdfDataString = String(data: originalPdfData, encoding: .isoLatin1)!.utf8
 let parsedPdfDocument = try PDFDocument.PDFDocumentParserPrinter().parse(originalPdfDataString)
 
 // Render the attachment data before appending
 let renderedAttachmentData = try parsedPdfDocument.append(
-    attachment: .init(filename: "attachmentFilename🧸", content: toBeAttachedData),
-    startObj:  originalPdfData.count
-)
+    attachments: [.init(filename: "attachmentFilename🧸", content: toBeAttachedData)],
+    startObj: originalPdfData.count
+).first!
 
 // Add the rendered attachment data to the original PDF data
 let pdfWithAttachmentData = originalPdfData + renderedAttachmentData
@@ -72,7 +72,7 @@ You can also extract attachments from a PDF:
 
 [source,swift]
 ----
-let pdfWithAttachmentDataString = String(data: pdfWithAttachmentData, encoding: .ascii)!.utf8
+let pdfWithAttachmentDataString = String(data: pdfWithAttachmentData, encoding: .isoLatin1)!.utf8
 let parsedPdfWithAttachment = try PDFDocument.PDFDocumentParserPrinter().parse(pdfWithAttachmentDataString)
 let attachments = try parsedPdfWithAttachment.allAttachments()
 

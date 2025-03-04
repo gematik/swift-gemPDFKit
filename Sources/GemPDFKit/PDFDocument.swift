@@ -106,8 +106,8 @@ extension PDFDocument {
         return objects.last
     }
 
-    func maxId() -> Int {
-        parts
+    func maxId(additionalParts: [PDFDocumentPart]) -> Int {
+        (parts + additionalParts)
             .reduce(into: []) { $0 += $1.objects.map(\.identifier) }
             .reduce(into: 0) { result, newValue in
                 result = max(result, newValue)
@@ -122,20 +122,58 @@ extension String {
 
 // swiftlint:disable function_body_length
 extension PDFDocument {
+    public func append(
+        attachments: [PDFAttachment],
+        startObj: Int
+    ) throws -> [Data] {
+        var result: [Data] = []
+        var startObj = startObj
+        var previousParts: [PDFDocumentPart] = []
+
+        for attachment in attachments {
+            let previousPart = try appendingPart(attachment: attachment, startObj: startObj, previousParts: previousParts)
+            previousParts.append(previousPart)
+
+            guard let resultString = String(try PDFDocumentPart.PDFDocumentPartParserPrinter().print(previousPart)),
+                  let attachmentData = resultString.data(using: .ascii) else {
+                throw PDFDocumentError.failedToCreateStringFromPrintedObject
+            }
+            startObj += attachmentData.count
+            result.append(attachmentData)
+        }
+        return result
+    }
+    
     /// Renders a given `PDFAttachment` as data to append to existing PDF data.
     /// - Parameters:
     ///   - attachment: The attachment to append
     ///   - startObj: The length of the existing, rendered PDF data.
     /// - Returns: Data representing the rendered attachment
+    @available(*, deprecated, message: "Use `append(attachments:startObj:)` instead")
     public func append(
         attachment: PDFAttachment,
         startObj: Int
     ) throws -> Data {
-        guard let startXRef = parts.first?.startXRef else {
+        let newPart = try appendingPart(attachment: attachment, startObj: startObj, previousParts: [])
+
+        guard let resultString = String(try PDFDocumentPart.PDFDocumentPartParserPrinter().print(newPart)),
+              let attachmentData = resultString.data(using: .ascii) else {
+            throw PDFDocumentError.failedToCreateStringFromPrintedObject
+        }
+        return attachmentData
+    }
+
+    func appendingPart(
+        attachment: PDFAttachment,
+        startObj: Int,
+        previousParts: [PDFDocumentPart]
+    ) throws -> PDFDocumentPart {
+        guard let startXRef = (previousParts.first ?? parts.first)?.startXRef else {
             throw PDFDocumentError.emptyDocument
         }
+        
         var objects: [PDFObject] = []
-        var nextId = maxId() + 1
+        var nextId = maxId(additionalParts: previousParts) + 1
         let fileData = attachment.content
         let fileName = attachment.filename
 
@@ -150,7 +188,7 @@ extension PDFDocument {
         let catalogId = catalogObject.identifier
 
         guard let dataStream = String(data: fileData, encoding: .utf8) else {
-            return Data()
+            throw PDFDocumentError.failedToCreateAttachmentPayloadData
         }
         let stream = PDFObject(
             identifier: nextId,
@@ -177,15 +215,43 @@ extension PDFDocument {
             stream: nil
         )
         nextId += 1
+        
+        let previousFileSpecs = previousParts.compactMap { part in
+            part.objects.first { object in
+                guard case let PDFAtom.dictionary(dictionary) = object.atom else {
+                    return false
+                }
+                return dictionary.contains { (key: PDFAtom, value: PDFAtom) in
+                    if key == .name("Type") {
+                        return value == .name("Filespec")
+                    }
+                    return false
+                }
+            }
+        }
+        let namesArray: [PDFAtom] = previousFileSpecs.flatMap { previousFileSpec in
+            guard case let PDFAtom.dictionary(dictionary) = previousFileSpec.atom,
+                  let fileNameAtom = dictionary.first(where: { (key: PDFAtom, value: PDFAtom) in
+                      key == .name("UF")
+                  })?.value else {
+                return Array<PDFAtom>()
+            }
+            return [
+                fileNameAtom,
+                .reference(previousFileSpec.identifier, previousFileSpec.counter),
+            ]
+        }
 
         let names = PDFObject(
             identifier: nextId,
             counter: 0,
             atom: .dictionary([
-                .name("Names"): .array([
-                    .hexString("\(String.bom)\(fileName)"),
-                    .reference(filespec.identifier, filespec.counter),
-                ]),
+                .name("Names"): .array(
+                    [
+                        .hexString("\(String.bom)\(fileName)"),
+                        .reference(filespec.identifier, filespec.counter),
+                    ] + namesArray // previous files
+                ),
             ]),
             stream: nil
         )
@@ -202,8 +268,7 @@ extension PDFDocument {
             ]),
             stream: nil
         )
-        nextId += 1
-
+        
         objects.append(catalogAddition)
 
         objects.append(stream)
@@ -215,7 +280,7 @@ extension PDFDocument {
         }
 
         let trailerContent = PDFAtom.dictionary([
-            .name("Size"): .int(nextId),
+            .name("Size"): .int(nextId + 1),
             .name("Root"): .reference(catalogId, 0),
             .name("Prev"): .int(startXRef),
         ])
@@ -244,18 +309,11 @@ extension PDFDocument {
             ]),
         ])
 
-        let part = PDFDocumentPart(
+        return PDFDocumentPart(
             objects: objects,
             xref: xref,
             trailer: .init(body: trailerContent),
             startXRef: startObj + objectsData.count
         )
-
-        guard let resultString = String(try PDFDocumentPart.PDFDocumentPartParserPrinter().print(part)),
-              let result = resultString.data(using: .ascii) else {
-            throw PDFDocumentError.failedToCreateStringFromPrintedObject
-        }
-
-        return result
     }
 }
