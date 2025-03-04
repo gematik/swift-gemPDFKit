@@ -92,7 +92,7 @@ final class PDFDocumentPartTests: XCTestCase {
 
     func testParsingDocumentPart1() throws {
         let data = try testResource(name: "document_part", extension: "data")
-        let inputString = String(data: data, encoding: .ascii)!
+        let inputString = String(data: data, encoding: .isoLatin1)!
 
         let result = try PDFDocumentPart.PDFDocumentPartParserPrinter().parse(inputString)
 

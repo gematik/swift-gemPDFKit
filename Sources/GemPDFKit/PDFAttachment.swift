@@ -115,4 +115,5 @@ enum PDFDocumentError: Error, Equatable {
     case missingEFFileReference
     case fileObjectWithoutData
     case failedToCreateStringFromPrintedObject
+    case failedToCreateAttachmentPayloadData
 }

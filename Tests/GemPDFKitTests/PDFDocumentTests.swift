@@ -92,7 +92,7 @@ final class PDFDocumentTests: XCTestCase {
 
     func testParsingTestDocument1() throws {
         let data = try testResource(name: "simple_pdf", extension: "pdf")
-        let inputString = String(data: data, encoding: .ascii)!.utf8
+        let inputString = String(data: data, encoding: .isoLatin1)!.utf8
 
         let result = try PDFDocument.PDFDocumentParserPrinter().parse(inputString)
 
@@ -104,7 +104,7 @@ final class PDFDocumentTests: XCTestCase {
 
     func testParsingTestDocument2() throws {
         let data = try testResource(name: "simple_pdf_out", extension: "pdf")
-        let inputString = String(data: data, encoding: .ascii)!.utf8
+        let inputString = String(data: data, encoding: .isoLatin1)!.utf8
 
         let result = try PDFDocument.PDFDocumentParserPrinter().parse(inputString)
 
