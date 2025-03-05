@@ -122,6 +122,16 @@ extension String {
 
 // swiftlint:disable function_body_length
 extension PDFDocument {
+
+    /// Renders a list of `PDFAttachment`s as data to append to an existing PDF.
+    ///
+    /// Known Issue: The existing PDF is expected to not contain any attachments. If it does, the attachments will be
+    /// appended to the end of the document, but only the new attachements will show.
+    ///
+    /// - Parameters:
+    ///   - attachments: The attachments to append
+    ///   - startObj: The length of the existing, rendered PDF data.
+    /// - Returns: `[Data]` representing the rendered attachment. Append them to the existing PDF `Data`.
     public func append(
         attachments: [PDFAttachment],
         startObj: Int
@@ -149,6 +159,8 @@ extension PDFDocument {
     ///   - attachment: The attachment to append
     ///   - startObj: The length of the existing, rendered PDF data.
     /// - Returns: Data representing the rendered attachment
+    ///
+    /// - Note: This method is deprecated as appending multiple attachements is buggy, use `append(attachments:startObj:)` instead.
     @available(*, deprecated, message: "Use `append(attachments:startObj:)` instead")
     public func append(
         attachment: PDFAttachment,
