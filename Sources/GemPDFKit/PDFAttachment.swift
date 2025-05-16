@@ -24,10 +24,14 @@ public struct PDFAttachment {
     /// Content of the file
     public let content: Data
 
+    /// MIME type of the attachment, defaults to "application/octet-stream"
+    public let mimeType: String
+
     /// Construct a `PDFAttachment` form data and a given filename
-    public init(filename: String, content: Data) {
+    public init(filename: String, content: Data, mimeType: String = "application/octet-stream") {
         self.filename = filename
         self.content = content
+        self.mimeType = mimeType.replacingOccurrences(of: "/", with: "#2F")
     }
 }
 
