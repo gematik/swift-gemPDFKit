@@ -2,6 +2,10 @@
 
 ## Current
 
+## 0.2.1
+
+- Fix some linting issues for PDF/A conformancy.
+
 ## 0.2.0
 
 - Add support for multiple PDF attachements.

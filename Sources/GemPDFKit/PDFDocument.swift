@@ -169,7 +169,7 @@ extension PDFDocument {
         let newPart = try appendingPart(attachment: attachment, startObj: startObj, previousParts: [])
 
         guard let resultString = String(try PDFDocumentPart.PDFDocumentPartParserPrinter().print(newPart)),
-              let attachmentData = resultString.data(using: .ascii) else {
+              let attachmentData = resultString.data(using: .isoLatin1) else {
             throw PDFDocumentError.failedToCreateStringFromPrintedObject
         }
         return attachmentData
@@ -206,6 +206,8 @@ extension PDFDocument {
             identifier: nextId,
             counter: 0,
             atom: .dictionary([
+                .name("Type"): .name("EmbeddedFile"),
+                .name("Subtype"): .name("application#2Foctet-stream"),
                 .name("Length"): .int(dataStream.lengthOfBytes(using: .utf8)),
                 .name("Params"): .dictionary([
                     .name("Size"): .int(dataStream.lengthOfBytes(using: .utf8)),
@@ -219,10 +221,12 @@ extension PDFDocument {
             counter: 0,
             atom: .dictionary([
                 .name("Type"): .name("Filespec"),
+                .name("F"): .string(fileName.withoutEmoji()),
                 .name("UF"): .hexString("\(String.bom)\(fileName)"),
                 .name("EF"): .dictionary([
                     .name("F"): .reference(stream.identifier, stream.counter),
                 ]),
+                .name("AFRelationship"): .string("Source"),
             ]),
             stream: nil
         )
@@ -290,11 +294,14 @@ extension PDFDocument {
         for object in objects {
             print(object)
         }
+        
+        let fileId = UUID().uuidString
 
         let trailerContent = PDFAtom.dictionary([
             .name("Size"): .int(nextId + 1),
             .name("Root"): .reference(catalogId, 0),
             .name("Prev"): .int(startXRef),
+            .name("ID"): .array([.hexString(fileId), .hexString(fileId)])
         ])
 
         let objectsData = try PDFDocumentPart.ObjectsParserPrinter().print(objects)
@@ -327,5 +334,11 @@ extension PDFDocument {
             trailer: .init(body: trailerContent),
             startXRef: startObj + objectsData.count
         )
+    }
+}
+
+extension String {
+    func withoutEmoji() -> String {
+        filter { $0.isASCII }
     }
 }
