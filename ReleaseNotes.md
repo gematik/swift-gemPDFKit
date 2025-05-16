@@ -2,6 +2,10 @@
 
 ## Current
 
+## 0.2.2
+
+- Fix missing attachements when more than 2 attachements are used
+
 ## 0.2.1
 
 - Fix some linting issues for PDF/A conformancy.

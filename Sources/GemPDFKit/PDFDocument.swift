@@ -122,7 +122,6 @@ extension String {
 
 // swiftlint:disable function_body_length
 extension PDFDocument {
-
     /// Renders a list of `PDFAttachment`s as data to append to an existing PDF.
     ///
     /// Known Issue: The existing PDF is expected to not contain any attachments. If it does, the attachments will be
@@ -131,63 +130,20 @@ extension PDFDocument {
     /// - Parameters:
     ///   - attachments: The attachments to append
     ///   - startObj: The length of the existing, rendered PDF data.
-    /// - Returns: `[Data]` representing the rendered attachment. Append them to the existing PDF `Data`.
+    /// - Returns: `Data` representing the rendered attachments. Append them to the existing PDF `Data`. If no
+    /// attachment is given, an empty `Data` is returned.
     public func append(
         attachments: [PDFAttachment],
         startObj: Int
-    ) throws -> [Data] {
-        var result: [Data] = []
-        var startObj = startObj
-        var previousParts: [PDFDocumentPart] = []
-
-        for attachment in attachments {
-            let previousPart = try appendingPart(attachment: attachment, startObj: startObj, previousParts: previousParts)
-            previousParts.append(previousPart)
-
-            guard let resultString = String(try PDFDocumentPart.PDFDocumentPartParserPrinter().print(previousPart)),
-                  let attachmentData = resultString.data(using: .ascii) else {
-                throw PDFDocumentError.failedToCreateStringFromPrintedObject
-            }
-            startObj += attachmentData.count
-            result.append(attachmentData)
-        }
-        return result
-    }
-    
-    /// Renders a given `PDFAttachment` as data to append to existing PDF data.
-    /// - Parameters:
-    ///   - attachment: The attachment to append
-    ///   - startObj: The length of the existing, rendered PDF data.
-    /// - Returns: Data representing the rendered attachment
-    ///
-    /// - Note: This method is deprecated as appending multiple attachements is buggy, use `append(attachments:startObj:)` instead.
-    @available(*, deprecated, message: "Use `append(attachments:startObj:)` instead")
-    public func append(
-        attachment: PDFAttachment,
-        startObj: Int
     ) throws -> Data {
-        let newPart = try appendingPart(attachment: attachment, startObj: startObj, previousParts: [])
-
-        guard let resultString = String(try PDFDocumentPart.PDFDocumentPartParserPrinter().print(newPart)),
-              let attachmentData = resultString.data(using: .isoLatin1) else {
-            throw PDFDocumentError.failedToCreateStringFromPrintedObject
+        guard !attachments.isEmpty else {
+            return Data()
         }
-        return attachmentData
-    }
-
-    func appendingPart(
-        attachment: PDFAttachment,
-        startObj: Int,
-        previousParts: [PDFDocumentPart]
-    ) throws -> PDFDocumentPart {
-        guard let startXRef = (previousParts.first ?? parts.first)?.startXRef else {
+        guard let startXRef = parts.last?.startXRef ?? parts.first?.startXRef else {
             throw PDFDocumentError.emptyDocument
         }
-        
         var objects: [PDFObject] = []
-        var nextId = maxId(additionalParts: previousParts) + 1
-        let fileData = attachment.content
-        let fileName = attachment.filename
+        var nextId = maxId(additionalParts: []) + 1
 
         guard let pagesObject = objectWithType(type: .name("Pages")) else {
             throw PDFDocumentError.objectWithNameNotFound("Pages")
@@ -199,79 +155,64 @@ extension PDFDocument {
         }
         let catalogId = catalogObject.identifier
 
-        guard let dataStream = String(data: fileData, encoding: .utf8) else {
-            throw PDFDocumentError.failedToCreateAttachmentPayloadData
-        }
-        let stream = PDFObject(
-            identifier: nextId,
-            counter: 0,
-            atom: .dictionary([
-                .name("Type"): .name("EmbeddedFile"),
-                .name("Subtype"): .name("application#2Foctet-stream"),
-                .name("Length"): .int(dataStream.lengthOfBytes(using: .utf8)),
-                .name("Params"): .dictionary([
-                    .name("Size"): .int(dataStream.lengthOfBytes(using: .utf8)),
-                ]),
-            ]),
-            stream: .init(stream: dataStream)
-        )
-        nextId += 1
-        let filespec = PDFObject(
-            identifier: nextId,
-            counter: 0,
-            atom: .dictionary([
-                .name("Type"): .name("Filespec"),
-                .name("F"): .string(fileName.withoutEmoji()),
-                .name("UF"): .hexString("\(String.bom)\(fileName)"),
-                .name("EF"): .dictionary([
-                    .name("F"): .reference(stream.identifier, stream.counter),
-                ]),
-                .name("AFRelationship"): .string("Source"),
-            ]),
-            stream: nil
-        )
-        nextId += 1
-        
-        let previousFileSpecs = previousParts.compactMap { part in
-            part.objects.first { object in
-                guard case let PDFAtom.dictionary(dictionary) = object.atom else {
-                    return false
-                }
-                return dictionary.contains { (key: PDFAtom, value: PDFAtom) in
-                    if key == .name("Type") {
-                        return value == .name("Filespec")
-                    }
-                    return false
-                }
+        // Create a new stream and filespec for each attachement
+        var namesArray: [PDFAtom] = []
+        var filespecObjects: [PDFObject] = []
+        for attachment in attachments {
+            guard let dataStream = String(data: attachment.content, encoding: .utf8) else {
+                throw PDFDocumentError.failedToCreateAttachmentPayloadData
             }
-        }
-        let namesArray: [PDFAtom] = previousFileSpecs.flatMap { previousFileSpec in
-            guard case let PDFAtom.dictionary(dictionary) = previousFileSpec.atom,
-                  let fileNameAtom = dictionary.first(where: { (key: PDFAtom, value: PDFAtom) in
-                      key == .name("UF")
-                  })?.value else {
-                return Array<PDFAtom>()
-            }
-            return [
-                fileNameAtom,
-                .reference(previousFileSpec.identifier, previousFileSpec.counter),
-            ]
+            let stream = PDFObject(
+                identifier: nextId,
+                counter: 0,
+                atom: .dictionary([
+                    .name("Type"): .name("EmbeddedFile"),
+                    .name("Subtype"): .name(attachment.mimeType),
+                    .name("Length"): .int(dataStream.lengthOfBytes(using: .utf8)),
+                    .name("Params"): .dictionary([
+                        .name("Size"): .int(dataStream.lengthOfBytes(using: .utf8)),
+                    ]),
+                ]),
+                stream: .init(stream: dataStream)
+            )
+            nextId += 1
+            let filespec = PDFObject(
+                identifier: nextId,
+                counter: 0,
+                atom: .dictionary([
+                    .name("Type"): .name("Filespec"),
+                    .name("F"): .string(attachment.filename.withoutEmoji()),
+                    .name("UF"): .hexString("\(String.bom)\(attachment.filename)"),
+                    .name("EF"): .dictionary([
+                        .name("F"): .reference(stream.identifier, stream.counter),
+                    ]),
+                    .name("AFRelationship"): .string("Source"),
+                ]),
+                stream: nil
+            )
+            nextId += 1
+
+            // Add the filename and reference to the names array
+            namesArray.append(.hexString("\(String.bom)\(attachment.filename)"))
+            namesArray.append(.reference(filespec.identifier, filespec.counter))
+
+            objects.append(stream)
+            objects.append(filespec)
+            filespecObjects.append(filespec)
         }
 
+        // Names object containing all attachments
         let names = PDFObject(
             identifier: nextId,
             counter: 0,
             atom: .dictionary([
-                .name("Names"): .array(
-                    [
-                        .hexString("\(String.bom)\(fileName)"),
-                        .reference(filespec.identifier, filespec.counter),
-                    ] + namesArray // previous files
-                ),
+                .name("Names"): .array(namesArray),
             ]),
             stream: nil
         )
+        nextId += 1
 
+        // Update catalog object to include the new attachments
         let catalogAddition = PDFObject(
             identifier: catalogId,
             counter: 0,
@@ -279,37 +220,40 @@ extension PDFDocument {
                 .name("Type"): .name("Catalog"),
                 .name("Pages"): .reference(pagesId, 0),
                 .name("Names"): .dictionary([
-                    .name("EmbeddedFiles"): .reference(nextId, 0),
+                    .name("EmbeddedFiles"): .reference(names.identifier, names.counter),
                 ]),
             ]),
             stream: nil
         )
-        
-        objects.append(catalogAddition)
-
-        objects.append(stream)
-        objects.append(filespec)
+        objects.insert(catalogAddition, at: 0)
         objects.append(names)
 
-        for object in objects {
-            print(object)
-        }
-        
         let fileId = UUID().uuidString
-
         let trailerContent = PDFAtom.dictionary([
             .name("Size"): .int(nextId + 1),
             .name("Root"): .reference(catalogId, 0),
             .name("Prev"): .int(startXRef),
-            .name("ID"): .array([.hexString(fileId), .hexString(fileId)])
+            .name("ID"): .array([.hexString(fileId), .hexString(fileId)]),
         ])
 
         let objectsData = try PDFDocumentPart.ObjectsParserPrinter().print(objects)
 
-        let catalogData = try PDFObject.PDFObjectParserPrinter().print(catalogAddition)
-        let streamData = try PDFObject.PDFObjectParserPrinter().print(stream)
-        let filespecData = try PDFObject.PDFObjectParserPrinter().print(filespec)
+        // Length of the objects
+        var objectDatas: [Data] = []
 
+        for object in objects {
+            let str = try PDFObject.PDFObjectParserPrinter().print(object)
+
+            guard let data = Substring(str).data(using: .isoLatin1) else {
+                throw PDFDocumentError.failedToCreateStringFromPrintedObject
+            }
+            objectDatas.append(data)
+        }
+
+        // Start offsets of each object
+        let offsets = objectDatas.dropLast().reduce(into: [startObj]) { $0.append(($0.last ?? 0) + $1.count) }
+
+        // Create XRef table
         let xref = PDFXRef(sections: [
             .init(identifier: 0, count: 1, elements: [
                 .init(startOffset: 1, generation: 65535, usage: .free),
@@ -317,28 +261,46 @@ extension PDFDocument {
             .init(identifier: catalogId, count: 1, elements: [
                 .init(startOffset: startObj, generation: 0, usage: .inUse),
             ]),
-            .init(identifier: stream.identifier, count: 3, elements: [
-                .init(startOffset: startObj + catalogData.count, generation: 0, usage: .inUse),
-                .init(startOffset: startObj + catalogData.count + streamData.count, generation: 0, usage: .inUse),
-                .init(
-                    startOffset: startObj + catalogData.count + streamData.count + filespecData.count,
-                    generation: 0,
-                    usage: .inUse
-                ),
-            ]),
+            .init(identifier: objects[1].identifier,
+                  count: objects.count - 1,
+                  elements: (1 ..< objects.count).map { idx in
+                      .init(startOffset: offsets[idx], generation: 0, usage: .inUse)
+                  }),
         ])
 
-        return PDFDocumentPart(
+        let pdfPart = PDFDocumentPart(
             objects: objects,
             xref: xref,
             trailer: .init(body: trailerContent),
             startXRef: startObj + objectsData.count
         )
+
+        guard let resultString = String(try PDFDocumentPart.PDFDocumentPartParserPrinter().print(pdfPart)),
+              let attachmentData = resultString.data(using: .isoLatin1) else {
+            throw PDFDocumentError.failedToCreateStringFromPrintedObject
+        }
+        return attachmentData
+    }
+
+    /// Renders a given `PDFAttachment` as data to append to existing PDF data.
+    /// - Parameters:
+    ///   - attachment: The attachment to append
+    ///   - startObj: The length of the existing, rendered PDF data.
+    /// - Returns: Data representing the rendered attachment
+    ///
+    /// - Note: This method is deprecated as appending multiple attachements is buggy, use
+    /// `append(attachments:startObj:)` instead.
+    @available(*, deprecated, message: "Use `append(attachments:startObj:)` instead")
+    public func append(
+        attachment: PDFAttachment,
+        startObj: Int
+    ) throws -> Data {
+        try append(attachments: [attachment], startObj: startObj)
     }
 }
 
 extension String {
     func withoutEmoji() -> String {
-        filter { $0.isASCII }
+        filter(\.isASCII)
     }
 }
