@@ -38,7 +38,7 @@ final class PDFDocumentAppendTests: XCTestCase {
         let originalPdfDataString = String(data: originalPdfData, encoding: .isoLatin1)!.utf8
         let parsedPdfDocument = try PDFDocument.PDFDocumentParserPrinter().parse(originalPdfDataString)
 
-        var document = parsedPdfDocument
+        let document = parsedPdfDocument
         // Append no attachments
         let attachmentsData = try document.append(attachments: [], startObj: originalPdfData.count)
         // Check that no data was appended

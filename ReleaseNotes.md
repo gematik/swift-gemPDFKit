@@ -2,6 +2,10 @@
 
 ## Current
 
+## 0.2.3
+
+- Fix deprecated `CasePaths` usage warnings; keep dependencies pinned to versions compatible with Swift 5.9 toolchains.
+
 ## 0.2.2
 
 - Fix missing attachements when more than 2 attachements are used

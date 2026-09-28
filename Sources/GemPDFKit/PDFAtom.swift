@@ -20,8 +20,10 @@
 
 import Foundation
 import Parsing
+import CasePaths
 
-public enum PDFAtom: Hashable, Equatable, CustomStringConvertible, Comparable {
+@CasePathable
+public enum PDFAtom: Hashable, Equatable, CustomStringConvertible, Comparable, Sendable {
     public static func <(lhs: PDFAtom, rhs: PDFAtom) -> Bool {
         switch (lhs, rhs) {
         case let (.name(lhsName), .name(rhsName)):
@@ -181,11 +183,15 @@ extension PDFAtom {
         }
     }
 
-    static let escape: some ParserPrinter<Substring.UTF8View, String> = ParsePrint {
-        "\\".utf8
+    struct EscapeParserPrinter: ParserPrinter {
+        var body: some ParserPrinter<Substring.UTF8View, String> {
+            "\\".utf8
 
-        EscapedCharacterParserPrinter()
+            EscapedCharacterParserPrinter()
+        }
     }
+
+    static let escape = EscapeParserPrinter()
 
     static let hexCharacterSet = CharacterSet(charactersIn: "0123456789abcdefABCDEF")
 
