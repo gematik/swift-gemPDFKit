@@ -33,9 +33,9 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/pointfreeco/swift-parsing", .upToNextMinor(from: "0.14.1")),
-        .package(url: "https://github.com/pointfreeco/swift-case-paths", "1.7.0"..<"1.7.3"),
-        .package(url: "https://github.com/Quick/Nimble", .upToNextMajor(from: "13.0.0")),
+        .package(url: "https://github.com/pointfreeco/swift-parsing", from: "0.15.2"),
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.10.0"),
+        .package(url: "https://github.com/Quick/Nimble", .upToNextMajor(from: "14.0.0")),
     ],
     targets: [
         .target(
