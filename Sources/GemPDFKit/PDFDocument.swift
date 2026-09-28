@@ -120,7 +120,7 @@ extension PDFDocument {
 }
 
 extension String {
-    static var bom = String(data: Data([0xFE, 0xFF]),
+    static let bom = String(data: Data([0xFE, 0xFF]),
                             encoding: .utf16BigEndian)! // swiftlint:disable:this force_unwrapping
 }
 

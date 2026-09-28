@@ -1,4 +1,4 @@
-// swift-tools-version:5.7
+// swift-tools-version:5.9
 //
 // Copyright (Change Date see Readme), gematik GmbH
 //
@@ -33,14 +33,16 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/pointfreeco/swift-parsing", from: "0.13.0"),
-        .package(url: "https://github.com/Quick/Nimble", from: "10.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-parsing", .upToNextMinor(from: "0.14.1")),
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", "1.7.0"..<"1.7.3"),
+        .package(url: "https://github.com/Quick/Nimble", .upToNextMajor(from: "13.0.0")),
     ],
     targets: [
         .target(
             name: "GemPDFKit",
             dependencies: [
                 .product(name: "Parsing", package: "swift-parsing"),
+                .product(name: "CasePaths", package: "swift-case-paths"),
             ]
         ),
         .testTarget(

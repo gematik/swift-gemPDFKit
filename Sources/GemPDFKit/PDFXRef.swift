@@ -18,6 +18,7 @@
 // For additional notes and disclaimer from gematik and in case of changes by gematik find details in the "Readme" file.
 //
 
+import CasePaths
 import Foundation
 import Parsing
 
@@ -41,6 +42,7 @@ public struct PDFXRef: Equatable {
 
             public var usage: Usage
 
+            @CasePathable
             public enum Usage: Equatable {
                 case free
                 case inUse

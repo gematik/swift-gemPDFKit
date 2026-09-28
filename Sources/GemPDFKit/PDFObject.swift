@@ -21,7 +21,7 @@
 import Foundation
 import Parsing
 
-public struct PDFObject: Equatable {
+public struct PDFObject: Equatable, Sendable {
     let identifier: Int
     let counter: Int
     let atom: PDFAtom
@@ -37,7 +37,7 @@ public struct PDFObject: Equatable {
     }
 }
 
-struct PDFStream: Equatable {
+struct PDFStream: Equatable, Sendable {
     var stream: String
 }
 
